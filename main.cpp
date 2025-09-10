@@ -1,12 +1,16 @@
 #include <iostream>
 #include <string>
 
+#include "Database.h"
+
 using std::cout;
 using std::cin;
 using std::endl;
 using std::string;
 
 int main() {
+    Database DB;
+
     cout << "Adam Dapoz 101302979 --- Relational Algebra Processor" << endl;
     cout << "COMP 3005 Bonus Assignment 1" << endl << endl;
 
@@ -22,11 +26,17 @@ int main() {
             query += input;
             query += " ";
 
-            if (input.at(input.length()-1) == '|') { break; }
+            if (input.length() > 0 && input.at(input.length()-1) == '|') {
+                //remove 'end of command' symbol and leave input loop
+                query = query.substr( 0, query.length()-2 );
+                break; 
+            } else {
+                cout << "+ "; //continuing command
+            }
         }
 
-
-        cout << "got input " << query << endl;
+        //run command
+        DB.execute(query);
     }
 
 

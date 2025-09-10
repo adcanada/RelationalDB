@@ -1,0 +1,6 @@
+run
+main.o
+Database.o
+Relation.o
+LogicalExpression.o
+ses
