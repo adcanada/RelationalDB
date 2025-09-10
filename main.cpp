@@ -14,7 +14,7 @@ int main() {
     cout << "Adam Dapoz 101302979 --- Relational Algebra Processor" << endl;
     cout << "COMP 3005 Bonus Assignment 1" << endl << endl;
 
-    cout << "Use '|' to signal end of command." << endl;
+    cout << "Use ';' to signal end of command." << endl;
     while (true) {
         cout << "> "; //prompt
         
@@ -26,10 +26,8 @@ int main() {
             query += input;
             query += " ";
 
-            if (input.length() > 0 && input.at(input.length()-1) == '|') {
-                //remove 'end of command' symbol and leave input loop
-                query = query.substr( 0, query.length()-2 );
-                break; 
+            if (input.length() > 0 && input.at(input.length()-1) == ';') {
+                break; //ended command
             } else {
                 cout << "+ "; //continuing command
             }
