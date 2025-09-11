@@ -12,9 +12,12 @@ using std::vector;
 class Database {
   public:
     const Relation& getRelation(const string&) const;
-    Relation& execute(string&);
+    Relation execute(string&);
 
   private:
+    Relation executeTokens(vector<string>&);
+    Relation parsePi(vector<string>& tokens);
+
     std::unordered_map<string,Relation> relations;
     //Parser parser;
 };

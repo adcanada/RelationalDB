@@ -14,4 +14,4 @@ LogicalExpression.o: LogicalExpression.cpp LogicalExpression.h
 	g++ -c LogicalExpression.cpp
 
 clean:
-	rm *.o
+	rm run *.o

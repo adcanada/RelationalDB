@@ -34,9 +34,14 @@ int main() {
         }
 
         //run command
-        DB.execute(query);
+        try {
+            Relation result = DB.execute(query);
+            result.print();
+        } catch (std::runtime_error *e) {
+            cout << "\nException: " << e->what() << endl;
+            return 1;
+        }
     }
-
 
     return 0;
 }

@@ -43,7 +43,7 @@ bool LogicalExpression::eval(const vector<string>& colnames, const vector<string
             return dataLhs != dataRhs;
             break;
         default:
-            throw new std::logic_error("Invalid operator in logical expression");
+            throw new std::runtime_error("Invalid operator in logical expression");
         }
     }
 

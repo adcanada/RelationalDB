@@ -9,8 +9,8 @@ vector<string> splitIntoTokens(string& command);
 string nextToken(string& command);
 bool isKeyword(const string&);
 
-Relation parseSigma(vector<string> tokens);
-Relation parsePi(vector<string> tokens);
+//Relation parseSigma(vector<string>& tokens);
+Relation parsePi(vector<string>& tokens);
 
 const vector<string> keywords = { 
     "sigma", "select", 
@@ -29,8 +29,13 @@ const Relation& Database::getRelation(const string &name) const {
     return this->relations.at(name);
 }
 
-Relation& Database::execute(string& command) {
+Relation Database::execute(string& command) {
     cout << "Parsing Command: " << command << endl;
+    vector<string> tokens = splitIntoTokens(command);
+    return executeTokens(tokens);
+}
+
+Relation Database::executeTokens(vector<string>& tokens) {
 
     //test relation
     vector<string> colnames = {"EID", "Cookies", "Age"};
@@ -41,31 +46,104 @@ Relation& Database::execute(string& command) {
     rel.addRow(r1);
     rel.addRow(r2);
     rel.addRow(r3);
-    rel.print();
+    //rel.print();
     
-    LogicalExpression expr("Cookies", DataOperator::notEqualTo, "Age");
+    /*LogicalExpression expr("Cookies", DataOperator::notEqualTo, "Age");
     cout << "r1: " << expr.eval(colnames, r1) << endl;
     cout << "r2: " << expr.eval(colnames, r2) << endl;
-    cout << "r3: " << expr.eval(colnames, r3) << endl;
+    cout << "r3: " << expr.eval(colnames, r3) << endl;*/
 
-    //parse the command
-    vector<string> tokens = splitIntoTokens(command);
+    std::pair<string,Relation> sample("Table1",rel);
+    relations.insert(sample);
 
-    int currentTokenNum = 0;
-    string token = tokens.at(currentTokenNum);
-    vector<string> remainingTokens(tokens.begin()+currentTokenNum, tokens.end());
+    //start processing the tokens from the start
+    
+    auto tokenIter = tokens.begin();
+    vector<string> remainingTokens(tokenIter+1, tokens.end());
 
-    if (token == ";") { //nothing command
-        exit(0);
-    } else if (token == "sigma" || token == "select") {
+    if (*tokenIter == ";") { //nothing command
+        return Relation();
+    } else if (*tokenIter == "sigma" || *tokenIter == "select") {
         //parseSigma(remainingTokens);
 
-    } else if (token == "pi" || token == "project") {
-        //parsePi(remainingTokens);
+    } else if (*tokenIter == "pi" || *tokenIter == "project") {
+        return parsePi(remainingTokens);
 
-    } 
+    } else { //relation name
+        string name = *tokenIter;
 
-    exit(1);
+        tokenIter++;
+        remainingTokens = vector<string>(tokenIter+1, tokens.end());
+
+        if (*tokenIter == "=") { //assigning to a relation
+            Relation rval = executeTokens(remainingTokens);
+            std::pair<string,Relation> newRelation(name, rval);
+            relations.insert(newRelation);
+            return rval;
+
+        } else if (*tokenIter == ";") { //just return this relation
+            if (relations.count(name) > 0) { //check existence
+                return relations.at(name);
+            } else {
+                return Relation();
+            }
+        }
+    }
+
+}
+
+Relation Database::parsePi(vector<string>& tokens) {
+    //format:
+    //pi { colname , ... , colname } { relation }
+    int tokenNum = 0;
+    if (tokens.at(tokenNum) != "{") {
+        throw new std::runtime_error("Invalid token \"" + tokens.at(tokenNum) + "\", \"{\" expected");
+    }
+
+    vector<string> selectedColumns;
+
+    do {
+        //read a column name
+        tokenNum++;
+        if (isKeyword(tokens.at(tokenNum))) {
+            throw new std::runtime_error("Invalid keyword \"" + tokens.at(tokenNum) + "\", column name expected");
+        } else {
+            selectedColumns.push_back(tokens.at(tokenNum));
+        }
+
+        tokenNum++;
+    } while (tokens.at(tokenNum) == ",");
+
+    //should have ended with }
+    if (tokens.at(tokenNum) != "}") {
+        throw new std::runtime_error("Invalid token \"" + tokens.at(tokenNum) + "\", \"}\" expected");
+    }
+
+    tokenNum++; //next should be { for the relation name
+    if (tokens.at(tokenNum) != "{") {
+        throw new std::runtime_error("Invalid token \"" + tokens.at(tokenNum) + "\", \"{\" expected");
+    }
+
+    tokenNum++; //now the relation name
+    if (isKeyword(tokens.at(tokenNum))) {
+        throw new std::runtime_error("Invalid keyword \"" + tokens.at(tokenNum) + "\", relation name expected");
+    }
+    string relationName = tokens.at(tokenNum);
+
+    tokenNum++; //now the closing }
+    if (tokens.at(tokenNum) != "}") {
+        throw new std::runtime_error("Invalid token \"" + tokens.at(tokenNum) + "\", \"}\" expected");
+    }
+
+    tokenNum++; //and a ; to end
+    if (tokens.at(tokenNum) != ";") {
+        throw new std::runtime_error("Invalid token \"" + tokens.at(tokenNum) + "\", \";\" expected");
+    }
+
+    //now we have a list of columns and a relation name
+    //so ask the relation to filter itself
+    Relation& rel = relations.at(relationName);
+    return rel.project(selectedColumns);
 }
 
 vector<string> splitIntoTokens(string& command) {

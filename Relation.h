@@ -12,17 +12,19 @@ using std::vector;
 
 class Relation {
   public:
+      Relation() {}
       Relation(const vector<string>& colnames) : 
           colnames(colnames) { }
 
 
       const vector<string>& getColNames() const;
       const vector<string>& getRow(int) const;
+      bool isColPresent(const string&) const;
+      Relation project(vector<string>&) const;
 
       bool addRow(const vector<string>&);
 
       void print() const;
-      void a();
 
       //operators
       //Relation& select(...);
