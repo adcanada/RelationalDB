@@ -39,7 +39,6 @@ int main() {
             result.print();
         } catch (std::runtime_error *e) {
             cout << "\nException: " << e->what() << endl;
-            return 1;
         }
     }
 

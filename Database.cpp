@@ -90,54 +90,54 @@ Relation Database::executeTokens(vector<string>& tokens) {
         }
     }
 
+    return Relation();
 }
 
 Relation Database::parsePi(vector<string>& tokens) {
     //format:
     //pi { colname , ... , colname } { relation }
-    int tokenNum = 0;
-    if (tokens.at(tokenNum) != "{") {
-        throw new std::runtime_error("Invalid token \"" + tokens.at(tokenNum) + "\", \"{\" expected");
+    auto tokenIter = tokens.begin();
+
+    if (*tokenIter != "{") {
+        throw new std::runtime_error("Invalid token \"" + *tokenIter + "\", \"{\" expected");
     }
 
     vector<string> selectedColumns;
 
     do {
         //read a column name
-        tokenNum++;
-        if (isKeyword(tokens.at(tokenNum))) {
-            throw new std::runtime_error("Invalid keyword \"" + tokens.at(tokenNum) + "\", column name expected");
+        if (isKeyword(*++tokenIter)) {
+            throw new std::runtime_error("Invalid keyword \"" + *tokenIter + "\", column name expected");
         } else {
-            selectedColumns.push_back(tokens.at(tokenNum));
+            selectedColumns.push_back(*tokenIter);
         }
 
-        tokenNum++;
-    } while (tokens.at(tokenNum) == ",");
+    } while (*++tokenIter == ",");
 
     //should have ended with }
-    if (tokens.at(tokenNum) != "}") {
-        throw new std::runtime_error("Invalid token \"" + tokens.at(tokenNum) + "\", \"}\" expected");
+    if (*tokenIter != "}") {
+        throw new std::runtime_error("Invalid token \"" + *tokenIter + "\", \"}\" expected");
     }
 
-    tokenNum++; //next should be { for the relation name
-    if (tokens.at(tokenNum) != "{") {
-        throw new std::runtime_error("Invalid token \"" + tokens.at(tokenNum) + "\", \"{\" expected");
+    //next should be { for the relation name
+    if (*++tokenIter != "{") {
+        throw new std::runtime_error("Invalid token \"" + *tokenIter + "\", \"{\" expected");
     }
 
-    tokenNum++; //now the relation name
-    if (isKeyword(tokens.at(tokenNum))) {
-        throw new std::runtime_error("Invalid keyword \"" + tokens.at(tokenNum) + "\", relation name expected");
+    //now the relation name
+    if (isKeyword(*++tokenIter)) {
+        throw new std::runtime_error("Invalid keyword \"" + *tokenIter + "\", relation name expected");
     }
-    string relationName = tokens.at(tokenNum);
+    string relationName = *tokenIter;
 
-    tokenNum++; //now the closing }
-    if (tokens.at(tokenNum) != "}") {
-        throw new std::runtime_error("Invalid token \"" + tokens.at(tokenNum) + "\", \"}\" expected");
+    //now the closing }
+    if (*++tokenIter != "}") {
+        throw new std::runtime_error("Invalid token \"" + *tokenIter + "\", \"}\" expected");
     }
 
-    tokenNum++; //and a ; to end
-    if (tokens.at(tokenNum) != ";") {
-        throw new std::runtime_error("Invalid token \"" + tokens.at(tokenNum) + "\", \";\" expected");
+    //and a ; at the end
+    if (*++tokenIter != ";" && ++tokenIter == tokens.end()) {
+        throw new std::runtime_error("Invalid token \"" + *tokenIter + "\", \";\" expected");
     }
 
     //now we have a list of columns and a relation name
