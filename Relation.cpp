@@ -62,7 +62,8 @@ bool Relation::addRow(const vector<string> &row) {
 void Relation::print() const {
     //print headers
     for (string colname : colnames) {
-        cout << colname << " ";
+        int textWidth = std::max( 10, int(colname.length()) );
+        printf("%*s ", textWidth, colname.c_str());
     }
     cout << endl;
 
@@ -70,9 +71,9 @@ void Relation::print() const {
     for (vector<string> row : table) {
         for (int colNum=0; colNum<colnames.size(); colNum++) {
 
-            int textWidth = colnames.at(colNum).length();
+            int textWidth = std::max( 10, int(colnames.at(colNum).length()) );
             //cout << row.at(colNum);
-            printf("%*s", textWidth, (row.at(colNum)+' ').c_str());
+            printf("%*s ", textWidth, row.at(colNum).c_str());
         }
         cout << endl;
     }

@@ -16,8 +16,10 @@ class Database {
 
   private:
     Relation executeTokens(vector<string>&);
+    Relation executeParentheses(vector<string>::iterator&, const vector<string>::iterator&);
+
+    Relation createRelation(vector<string>&);
     Relation parsePi(vector<string>& tokens);
 
     std::unordered_map<string,Relation> relations;
-    //Parser parser;
 };
