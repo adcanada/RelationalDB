@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "LogicalExpression.h"
+
 using std::cout;
 using std::endl;
 
@@ -20,6 +22,8 @@ class Relation {
       const vector<string>& getColNames() const;
       const vector<string>& getRow(int) const;
       bool isColPresent(const string&) const;
+
+      Relation select(const LogicalExpression&) const;
       Relation project(vector<string>&) const;
 
       bool addRow(const vector<string>&);

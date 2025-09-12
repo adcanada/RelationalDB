@@ -22,19 +22,26 @@ LogicalExpression::LogicalExpression(
 bool LogicalExpression::eval(const vector<string>& colnames, const vector<string>& row) const {
     if (isFirstOrderExpr) {
         //find cols and save data
-        int dataLhs, dataRhs;
+        string dataLhs, dataRhs;
+        bool foundLhs = false;
+        bool foundRhs = false;
         for (int i=0; i<colnames.size(); i++) {
-            if (colnames.at(i) == lhsCol) { dataLhs = stoi(row.at(i)); }
-            if (colnames.at(i) == rhsCol) { dataRhs = stoi(row.at(i)); }
+            if (colnames.at(i) == lhsCol) { dataLhs = row.at(i); foundLhs = true; }
+            if (colnames.at(i) == rhsCol) { dataRhs = row.at(i); foundRhs = true; }
+        }
+
+        if (!foundLhs || !foundRhs) {
+            //colums don't exist
+            throw new std::runtime_error("Selected column(s) could not be found");
         }
 
         //do the operation
         switch (dataOp) {
         case DataOperator::lessThan:
-            return dataLhs < dataRhs;
+            return stoi(dataLhs) < stoi(dataRhs);
             break;
         case DataOperator::greaterThan:
-            return dataLhs > dataRhs;
+            return stoi(dataLhs) > stoi(dataRhs);
             break;
         case DataOperator::equalTo:
             return dataLhs == dataRhs;

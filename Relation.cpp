@@ -14,6 +14,19 @@ bool Relation::isColPresent(const string& colName) const {
     return std::find(colnames.begin(), colnames.end(), colName) != colnames.end();
 }
 
+Relation Relation::select(const LogicalExpression& logicExpr) const {
+    //make a new relation, evaluate each row and add if true
+    Relation newRel(this->colnames);
+
+    for (const vector<string>& row : this->table) {
+        if (logicExpr.eval(this->colnames, row)) {
+            newRel.addRow(row);
+        }
+    }
+
+    return newRel;
+}
+
 Relation Relation::project(vector<string>& columns) const {
     //remove potential duplicates in the column list 
     //do this using std::unique (required sorted)

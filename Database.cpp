@@ -67,7 +67,7 @@ Relation Database::executeTokens(vector<string>& tokens) {
         return createRelation(tokens); //pass the { too
 
     } else if (*tokenIter == "sigma" || *tokenIter == "select") {
-        //parseSigma(remainingTokens);
+        return parseSigma(remainingTokens);
 
     } else if (*tokenIter == "pi" || *tokenIter == "project") {
         return parsePi(remainingTokens);
@@ -127,7 +127,7 @@ Relation Database::executeParentheses(vector<string>::iterator& iter, const vect
 
 Relation Database::createRelation(vector<string>& tokens) {
     //format:
-    //{ colnames , ... , colnames } { data , ... , data}
+    //{ colnames , ... , colnames } { data , ... , data} ;
     //where # of data is divisible by # columns
 
     auto tokenIter = tokens.begin();
@@ -207,9 +207,67 @@ Relation Database::createRelation(vector<string>& tokens) {
     return newRel;
 }
 
+Relation Database::parseSigma(vector<string>& tokens) {
+    //format:
+    //sigma { logic } { relation } ;
+    auto tokenIter = tokens.begin();
+
+    //start with {
+    if (*tokenIter != "{") {
+        throw new std::runtime_error("Invalid token \"" + *tokenIter + "\", \"{\" expected");
+    }
+
+    //now parse the logical expression
+    LogicalExpression logicExpr = parseLogicalExpr(++tokenIter, tokens.end());
+
+    //should be }
+    if (*++tokenIter != "}") {
+        throw new std::runtime_error("Invalid token \"" + *tokenIter + "\", \"}\" expected");
+    }
+
+    //then {
+    if (*++tokenIter != "{") {
+        throw new std::runtime_error("Invalid token \"" + *tokenIter + "\", \"{\" expected");
+    }
+
+    //now get the relation by name or brackets
+    Relation rel;
+    if (*++tokenIter == "(") {
+        rel = executeParentheses(tokenIter, tokens.end());
+
+    } else if (isKeyword(*tokenIter)) {
+        throw new std::runtime_error("Invalid keyword \"" + *tokenIter + "\", relation name expected");
+    } else { //get relation by name
+        rel = relations.at(*tokenIter);
+    }
+
+    //now the closing }
+    if (*++tokenIter != "}") {
+        throw new std::runtime_error("Invalid token \"" + *tokenIter + "\", \"}\" expected");
+    }
+
+    //and a ; at the end
+    if (*++tokenIter != ";" && ++tokenIter == tokens.end()) {
+        throw new std::runtime_error("Invalid token \"" + *tokenIter + "\", \";\" expected");
+    }
+
+    //now we have a logical expression and a relation
+    //so ask the relation to filter itself
+    return rel.select(logicExpr);
+}
+
+LogicalExpression Database::parseLogicalExpr(vector<string>::iterator& iter,
+                                             const vector<string>::iterator& end) {
+    
+    //check if lhs is bracketed
+    if (*iter == "(") {
+        //TODO
+    }
+}
+
 Relation Database::parsePi(vector<string>& tokens) {
     //format:
-    //pi { colname , ... , colname } { relation }
+    //pi { colname , ... , colname } { relation } ;
     auto tokenIter = tokens.begin();
 
     if (*tokenIter != "{") {
@@ -283,7 +341,7 @@ string nextToken(string& command) {
 
     //iterate until token split
     int i=0;
-    string tokenSplitChars = ",=<>\"{}(); ";
+    string tokenSplitChars = ",!=<>\"{}(); ";
     while (tokenSplitChars.find( command.at(i) ) == string::npos 
             && i < command.length()) {
         i++;
