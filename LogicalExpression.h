@@ -16,7 +16,7 @@ class LogicalExpression {
     LogicalExpression(const string&, const DataOperator&, const string&);     
 
     //second+ order expression: (expression) (AND/OR) (expression)
-    LogicalExpression(const LogicalExpression&, const LogicalOperator&, const LogicalExpression&);     
+    LogicalExpression(const LogicalExpression*, const LogicalOperator&, const LogicalExpression*);     
 
     bool eval(const vector<string>&, const vector<string>&) const; //colnames, row
     
@@ -25,7 +25,7 @@ class LogicalExpression {
     
     //used for first order logical expressions
     const string lhsCol; //column name
-    const string rhsCol; //column name
+    const string compareValue; //to compare to
     DataOperator dataOp; //comparion
 
     //used for second+ order logical expressions

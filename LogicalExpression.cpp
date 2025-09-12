@@ -1,53 +1,55 @@
 #include "LogicalExpression.h"
 #include <algorithm> //searching vectors
+#include <iostream>
+using std::cout;
 
 LogicalExpression::LogicalExpression(
         const string& colname1,
         const DataOperator& op,
-        const string& colname2) :
+        const string& value) :
     lhsCol(colname1),
-    rhsCol(colname2),
+    compareValue(value),
     dataOp(op),
     isFirstOrderExpr(true) { }
 
 LogicalExpression::LogicalExpression(
-        const LogicalExpression& colname1,
+        const LogicalExpression *lhsExpr,
         const LogicalOperator& op,
-        const LogicalExpression& colname2) :
-    recurseLhs(&colname1),
-    recurseRhs(&colname2),
+        const LogicalExpression *rhsExpr) :
+    recurseLhs(lhsExpr),
+    recurseRhs(rhsExpr),
     recurseOp(op),
     isFirstOrderExpr(false) { }
 
 bool LogicalExpression::eval(const vector<string>& colnames, const vector<string>& row) const {
     if (isFirstOrderExpr) {
-        //find cols and save data
-        string dataLhs, dataRhs;
+        //find col and save data
+        string dataLhs;
         bool foundLhs = false;
-        bool foundRhs = false;
         for (int i=0; i<colnames.size(); i++) {
             if (colnames.at(i) == lhsCol) { dataLhs = row.at(i); foundLhs = true; }
-            if (colnames.at(i) == rhsCol) { dataRhs = row.at(i); foundRhs = true; }
         }
 
-        if (!foundLhs || !foundRhs) {
-            //colums don't exist
-            throw new std::runtime_error("Selected column(s) could not be found");
+        if (!foundLhs) {
+            //column doesn't exist
+            cout <<"asdads";
+            //throw new std::runtime_error("Selected column \""+lhsCol+"\" could not be found");
+            throw new std::runtime_error("Selected column could not be found");
         }
 
         //do the operation
         switch (dataOp) {
         case DataOperator::lessThan:
-            return stoi(dataLhs) < stoi(dataRhs);
+            return stoi(dataLhs) < stoi(compareValue);
             break;
         case DataOperator::greaterThan:
-            return stoi(dataLhs) > stoi(dataRhs);
+            return stoi(dataLhs) > stoi(compareValue);
             break;
         case DataOperator::equalTo:
-            return dataLhs == dataRhs;
+            return dataLhs == compareValue;
             break;
         case DataOperator::notEqualTo:
-            return dataLhs != dataRhs;
+            return dataLhs != compareValue;
             break;
         default:
             throw new std::runtime_error("Invalid operator in logical expression");
