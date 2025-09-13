@@ -21,18 +21,18 @@ class Relation {
 
       const vector<string>& getColNames() const;
       const vector<string>& getRow(int) const;
+      int numRows() const;
       bool isColPresent(const string&) const;
 
+      //operators
       Relation select(const LogicalExpression&) const;
       Relation project(vector<string>&) const;
+      Relation makeUnion(const Relation&);
+      Relation makeIntersect(const Relation&);
 
       bool addRow(const vector<string>&);
 
       void print() const;
-
-      //operators
-      //Relation& select(...);
-      //...
 
   private:
     vector<string> colnames;

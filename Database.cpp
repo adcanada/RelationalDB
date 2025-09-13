@@ -8,12 +8,12 @@ using std::find; //find in vector
 vector<string> splitIntoTokens(string& command);
 string nextToken(string& command);
 bool isKeyword(const string&);
-void invalidToken(vector<string>::iterator&, const string&);
+void invalidToken(const string&, const string&);
 
 const vector<string> keywords = { 
     "sigma", "select", 
     "pi", "project", 
-    "join", 
+    "join", "loutjoin", "routjoin", "foutjoin",
     "union", 
     "intersect", 
     "minus", 
@@ -85,14 +85,21 @@ Relation Database::executeTokens(vector<string>& tokens) {
             return rval;
 
         } else if (*tokenIter == ";") { //just return this relation
-            if (relations.count(name) > 0) { //check existence
-                return relations.at(name);
-            } else {
-                return Relation();
+            if (relations.find(name) == relations.end()) { //check if relation exists
+                throw new std::runtime_error("Relation \""+name+"\" not found");
             }
+            return relations.at(name);
+
+        } else if (*tokenIter == "union"     ||
+                   *tokenIter == "intersect" ||
+                   *tokenIter == "join"      ||
+                   *tokenIter == "loutjoin"  ||
+                   *tokenIter == "routjoin"  ||
+                   *tokenIter == "foutjoin") {
+            return parseBinaryOperator(tokens);
 
         } else {
-            invalidToken(tokenIter, ";/=/join/union/intersect");
+            invalidToken(*tokenIter, ";/=/join/union/intersect");
         }
     }
 
@@ -102,7 +109,7 @@ Relation Database::executeTokens(vector<string>& tokens) {
 Relation Database::executeParentheses(vector<string>::iterator& iter, const vector<string>::iterator& end) {
     //first char should be (
     if (*iter != "(") { 
-        invalidToken(iter, "(");
+        invalidToken(*iter, "(");
     }
 
     //make new vector of tokens until we match all ()
@@ -134,7 +141,7 @@ Relation Database::createRelation(vector<string>& tokens) {
 
     //starts with {
     if (*tokenIter != "{") {
-        invalidToken(tokenIter, "{");
+        invalidToken(*tokenIter, "{");
     }
 
     //read the colnames now
@@ -143,8 +150,14 @@ Relation Database::createRelation(vector<string>& tokens) {
     do {
         //read a column name
         if (isKeyword(*++tokenIter)) {
-            invalidToken(tokenIter, "column name");
+            invalidToken(*tokenIter, "column name");
         } else {
+            //check if name is taken
+            for (string colname : colnames) {
+                if (colname == *tokenIter) {
+                    throw new std::runtime_error("Duplicate column name \""+colname+"\"");
+                }
+            }
             colnames.push_back(*tokenIter);
         }
 
@@ -152,12 +165,12 @@ Relation Database::createRelation(vector<string>& tokens) {
 
     //should end with }
     if (*tokenIter != "}") {
-        invalidToken(tokenIter, "}");
+        invalidToken(*tokenIter, "}");
     }
 
     //next should be { for the data
     if (*++tokenIter != "{") {
-        invalidToken(tokenIter, "{");
+        invalidToken(*tokenIter, "{");
     }
 
     //now read the data
@@ -170,13 +183,13 @@ Relation Database::createRelation(vector<string>& tokens) {
 
             //check and store data entry
             if (isKeyword(*++tokenIter)) {
-                invalidToken(tokenIter, "data value");
+                invalidToken(*tokenIter, "data value");
             }
             row.push_back(*tokenIter);
 
             if (*++tokenIter != "," && *tokenIter != "}") {
                 //neither comma nor } -> error
-                invalidToken(tokenIter, ",\" or \"}");
+                invalidToken(*tokenIter, ",\" or \"}");
             
             } else if (i != colnames.size()-1 && *tokenIter == "}") { 
                 //read } when not divisible by # cols -> error
@@ -191,7 +204,7 @@ Relation Database::createRelation(vector<string>& tokens) {
 
     //should be the end
     if (*++tokenIter != ";") {
-        invalidToken(tokenIter, ";");
+        invalidToken(*tokenIter, ";");
     }
     
     //no more tokens after
@@ -214,7 +227,7 @@ Relation Database::parseSigma(vector<string>& tokens) {
 
     //start with {
     if (*tokenIter != "{") {
-        invalidToken(tokenIter, "{");
+        invalidToken(*tokenIter, "{");
     }
 
     //find the closing } and parse the logical expression
@@ -227,12 +240,12 @@ Relation Database::parseSigma(vector<string>& tokens) {
 
     //should be }
     if (*tokenIter != "}") {
-        invalidToken(tokenIter, "}");
+        invalidToken(*tokenIter, "}");
     }
 
     //then {
     if (*++tokenIter != "{") {
-        invalidToken(tokenIter, "{");
+        invalidToken(*tokenIter, "{");
     }
 
     //now get the relation by name or brackets
@@ -241,19 +254,27 @@ Relation Database::parseSigma(vector<string>& tokens) {
         rel = executeParentheses(tokenIter, tokens.end());
 
     } else if (isKeyword(*tokenIter)) {
-        invalidToken(tokenIter, "relation name");
+        invalidToken(*tokenIter, "relation name");
     } else { //get relation by name
+        if (relations.find(*tokenIter) == relations.end()) { //check if relation exists
+            throw new std::runtime_error("Relation \""+*tokenIter+"\" not found");
+        }
         rel = relations.at(*tokenIter);
     }
 
     //now the closing }
     if (*++tokenIter != "}") {
-        invalidToken(tokenIter, "}");
+        invalidToken(*tokenIter, "}");
     }
 
     //and a ; at the end
     if (*++tokenIter != ";" && ++tokenIter == tokens.end()) {
-        invalidToken(tokenIter, ";");
+        invalidToken(*tokenIter, ";");
+    }
+
+    //no more tokens after
+    if (++tokenIter != tokens.end()) {
+        throw new std::runtime_error("Invalid token \"" + *tokenIter + "\" after end of command");
     }
 
     //now we have a logical expression and a relation
@@ -284,12 +305,12 @@ LogicalExpression* Database::parseLogicalExpr(vector<string>::iterator& iter,
         } else if (*iter == "or") {
             logicalOp = LogicalOperator::OR;
         } else {
-            invalidToken(iter, "and/or");
+            invalidToken(*iter, "and/or");
         }
 
         //read rhs, should also be bracketed
         if (*++iter != "(") {
-            invalidToken(iter, "{");
+            invalidToken(*iter, "{");
         }
         endParenthesis = std::find(++iter, end, ")");
         if (endParenthesis == end) {
@@ -299,7 +320,7 @@ LogicalExpression* Database::parseLogicalExpr(vector<string>::iterator& iter,
 
         //should be at end
         if (++iter != end) {
-            invalidToken(iter, "end of logical expression");
+            invalidToken(*iter, "end of logical expression");
         }
 
         //combine
@@ -309,7 +330,7 @@ LogicalExpression* Database::parseLogicalExpr(vector<string>::iterator& iter,
         string lhs = *iter;
         //should be a column name
         if (isKeyword(lhs)) {
-            invalidToken(iter, "column name");
+            invalidToken(*iter, "column name");
         }
 
         DataOperator dataOp;
@@ -319,21 +340,21 @@ LogicalExpression* Database::parseLogicalExpr(vector<string>::iterator& iter,
         else if (*iter == "!") {  
             // != is read as two tokens, if not connected then error
             if (*++iter == "=") { dataOp = DataOperator::notEqualTo; }
-            else { invalidToken(iter, "="); }
+            else { invalidToken(*iter, "="); }
         } else {
             //invalid operator
-            invalidToken(iter, ">/</=/!=");
+            invalidToken(*iter, ">/</=/!=");
         }
 
         //get rhs
         string rhs = *++iter;
         if (isKeyword(rhs)) {
-            invalidToken(iter, "a constant");
+            invalidToken(*iter, "a constant");
         }
 
         //should be at end now
         if (++iter != end) {
-            invalidToken(iter, "end of logical expression");
+            invalidToken(*iter, "end of logical expression");
         }
 
         //combine
@@ -348,7 +369,7 @@ Relation Database::parsePi(vector<string>& tokens) {
     auto tokenIter = tokens.begin();
 
     if (*tokenIter != "{") {
-        invalidToken(tokenIter, "{");
+        invalidToken(*tokenIter, "{");
     }
 
     vector<string> selectedColumns;
@@ -356,7 +377,7 @@ Relation Database::parsePi(vector<string>& tokens) {
     do {
         //read a column name
         if (isKeyword(*++tokenIter)) {
-            invalidToken(tokenIter, "column name");
+            invalidToken(*tokenIter, "column name");
         } else {
             selectedColumns.push_back(*tokenIter);
         }
@@ -365,12 +386,12 @@ Relation Database::parsePi(vector<string>& tokens) {
 
     //should have ended with }
     if (*tokenIter != "}") {
-        invalidToken(tokenIter, ",\" or \"}");
+        invalidToken(*tokenIter, ",\" or \"}");
     }
 
     //next should be { for the relation name
     if (*++tokenIter != "{") {
-        invalidToken(tokenIter, "{");
+        invalidToken(*tokenIter, "{");
     }
 
     //now get the relation by name or brackets
@@ -379,25 +400,86 @@ Relation Database::parsePi(vector<string>& tokens) {
         rel = executeParentheses(tokenIter, tokens.end());
 
     } else if (isKeyword(*tokenIter)) {
-        invalidToken(tokenIter, "relation name");
+        invalidToken(*tokenIter, "relation name");
     } else { //get relation by name
+        if (relations.find(*tokenIter) == relations.end()) { //check if relation exists
+            throw new std::runtime_error("Relation \""+*tokenIter+"\" not found");
+        }
         rel = relations.at(*tokenIter);
     }
 
     //now the closing }
     if (*++tokenIter != "}") {
-        invalidToken(tokenIter, "}");
+        invalidToken(*tokenIter, "}");
     }
 
     //and a ; at the end
     if (*++tokenIter != ";" && ++tokenIter == tokens.end()) {
-        invalidToken(tokenIter, ";");
+        invalidToken(*tokenIter, ";");
     }
 
     //now we have a list of columns and a relation
     //so ask the relation to filter itself
     return rel.project(selectedColumns);
 }
+
+
+Relation Database::parseBinaryOperator(vector<string>& tokens) {
+    auto tokenIter = tokens.begin();
+
+    //get first relation (potentially evaulate bracketed)
+    Relation lhs;
+    if (*tokenIter == "(") {
+        lhs = executeParentheses(tokenIter, tokens.end());
+
+    } else if (isKeyword(*tokenIter)) {
+        invalidToken(*tokenIter, "relation name");
+    } else { //get relation by name
+        if (relations.find(*tokenIter) == relations.end()) { //check if relation exists
+            throw new std::runtime_error("Relation \""+*tokenIter+"\" not found");
+        }
+        lhs = relations.at(*tokenIter);
+    }
+
+    //store operator token for now
+    string operatorToken = *++tokenIter;
+
+    //get second relation (potentially evaulate brackted)
+    Relation rhs;
+    if (*++tokenIter == "(") {
+        rhs = executeParentheses(tokenIter, tokens.end());
+
+    } else if (isKeyword(*tokenIter)) {
+        invalidToken(*tokenIter, "relation name");
+    } else { //get relation by name
+        if (relations.find(*tokenIter) == relations.end()) { //check if relation exists
+            throw new std::runtime_error("Relation \""+*tokenIter+"\" not found");
+        }
+        rhs = relations.at(*tokenIter);
+    }
+
+    //create new relation based on operator
+    Relation newRel;
+    if (operatorToken == "union") {
+        newRel = lhs.makeUnion(rhs);
+    } else if (operatorToken == "intersect") {
+        newRel = lhs.makeIntersect(rhs);
+    } else if (operatorToken == "join") {
+    } else if (operatorToken == "loutjoin") {
+    } else if (operatorToken == "routjoin") {
+    } else if (operatorToken == "foutjoin") {
+    } else {
+        invalidToken(operatorToken, "union/intsrsect/join/loutjoin/routjoin/foutjoin");
+    }
+
+    //should be ; next
+    if (*++tokenIter != ";" && ++tokenIter == tokens.end()) {
+        invalidToken(*tokenIter, ";");
+    }
+
+    return newRel;
+}
+
 
 vector<string> splitIntoTokens(string& command) {
     vector<string> tokens;
@@ -435,6 +517,6 @@ bool isKeyword(const string& str) {
     return (find(keywords.begin(), keywords.end(), str) != keywords.end());
 }
 
-void invalidToken(vector<string>::iterator& token, const string& expected) {
-    throw new std::runtime_error("Invalid token \"" + *token + "\", \"" + expected + "\" expected");
+void invalidToken(const string& token, const string& expected) {
+    throw new std::runtime_error("Invalid token \"" + token + "\", \"" + expected + "\" expected");
 }

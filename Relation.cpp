@@ -9,6 +9,10 @@ const vector<string>& Relation::getRow(int rownum) const {
     return table.at(rownum);
 }
 
+int Relation::numRows() const {
+    return table.size();
+}
+
 bool Relation::isColPresent(const string& colName) const {
     //if found, then it is present (helpful i know)
     return std::find(colnames.begin(), colnames.end(), colName) != colnames.end();
@@ -59,6 +63,74 @@ Relation Relation::project(vector<string>& columns) const {
     }
 
     //done
+    return newRel;
+}
+
+
+Relation Relation::makeUnion(const Relation& other) {
+    //check same # cols
+    if (this->colnames.size() != other.getColNames().size()) {
+        throw new std::runtime_error("Cannot union incompatible relations");
+    }
+
+    //check all col names match
+    for (int i=0; i<colnames.size(); i++) {
+        if (this->colnames.at(i) != other.getColNames().at(i)) {
+            throw new std::runtime_error("Cannot union incompatible relations");
+        }
+    }
+
+    Relation newRel(this->colnames);
+
+    //add this table
+    for (vector<string> row : this->table) {
+        newRel.addRow(row);
+    }
+
+    //add other table
+    for (int i=0; i<other.numRows(); i++) {
+        newRel.addRow( other.getRow(i) );
+    }
+
+    return newRel;
+}
+
+Relation Relation::makeIntersect(const Relation& other) {
+    //check same # cols
+    if (this->colnames.size() != other.getColNames().size()) {
+        throw new std::runtime_error("Cannot union incompatible relations");
+    }
+
+    //check all col names match
+    for (int i=0; i<colnames.size(); i++) {
+        if (this->colnames.at(i) != other.getColNames().at(i)) {
+            throw new std::runtime_error("Cannot union incompatible relations");
+        }
+    }
+    
+    Relation newRel(this->colnames);
+
+    for (vector<string> row : this->table) {
+        //check if a matching row is in the other table
+        for (int i=0; i<other.numRows(); i++) {
+            vector<string> otherRow = other.getRow(i);
+
+            //check each element
+            bool rowsEqual = true;
+            for (int ele=0; ele<row.size(); ele++) {
+                if (row.at(ele) != otherRow.at(ele)) {
+                    rowsEqual = false;
+                    break;
+                }
+            }
+
+            if (rowsEqual) {
+                newRel.addRow(row);
+                break;
+            }
+        }
+    }
+
     return newRel;
 }
 

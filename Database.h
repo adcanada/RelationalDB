@@ -24,6 +24,7 @@ class Database {
     Relation createRelation(vector<string>&);
     Relation parseSigma(vector<string>&);
     Relation parsePi(vector<string>&);
+    Relation parseBinaryOperator(vector<string>&);
 
     std::unordered_map<string,Relation> relations;
 };
