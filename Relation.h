@@ -27,8 +27,9 @@ class Relation {
       //operators
       Relation select(const LogicalExpression&) const;
       Relation project(vector<string>&) const;
-      Relation makeUnion(const Relation&);
-      Relation makeIntersect(const Relation&);
+      Relation makeUnion(const Relation&) const;
+      Relation makeIntersect(const Relation&) const;
+      Relation innerJoin(const Relation&) const;
 
       bool addRow(const vector<string>&);
 
@@ -37,4 +38,8 @@ class Relation {
   private:
     vector<string> colnames;
     vector<vector<string>> table;
+
+    vector<string> joinRows(const vector<string>&,
+                            const vector<string>&,
+                            const vector<int>&) const;
 };

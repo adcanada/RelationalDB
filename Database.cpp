@@ -476,6 +476,7 @@ Relation Database::parseBinaryOperator(vector<string>& tokens) {
     } else if (operatorToken == "intersect") {
         newRel = lhs.makeIntersect(rhs);
     } else if (operatorToken == "join") {
+        newRel = lhs.innerJoin(rhs);
     } else if (operatorToken == "loutjoin") {
     } else if (operatorToken == "routjoin") {
     } else if (operatorToken == "foutjoin") {
