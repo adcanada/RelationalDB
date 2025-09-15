@@ -62,6 +62,7 @@ Relation Database::executeTokens(vector<string>& tokens) {
 
     } else if (*tokenIter == "(") {
         Relation rel = executeParentheses(tokenIter, tokens.end());
+
         if (*++tokenIter == ";") { return rel; }
         else if (*tokenIter == "union"     ||
                  *tokenIter == "intersect" ||
@@ -478,8 +479,11 @@ Relation Database::parseBinaryOperator(vector<string>& tokens) {
     } else if (operatorToken == "join") {
         newRel = lhs.innerJoin(rhs);
     } else if (operatorToken == "loutjoin") {
+        newRel = lhs.leftOuterJoin(rhs);
     } else if (operatorToken == "routjoin") {
+        newRel = lhs.rightOuterJoin(rhs);
     } else if (operatorToken == "foutjoin") {
+        newRel = lhs.fullOuterJoin(rhs);
     } else {
         invalidToken(operatorToken, "union/intsrsect/join/loutjoin/routjoin/foutjoin");
     }

@@ -135,67 +135,27 @@ Relation Relation::makeIntersect(const Relation& other) const {
 }
 
 
-Relation Relation::innerJoin(const Relation& other) const {
-    //make list of matching cols
-    vector<int> thisColIndices;
-    vector<int> otherColIndices;
+vector<pair<int,int>> Relation::findMatchingCols(const Relation& other) const {
+    vector<pair<int,int>> matches;
 
-    //also make a list of unique col names
-    //(add to this in the loop)
-    vector<string> uniqueCols = other.getColNames();
-
-    //find all pairs of col indices connecting the relations
-    for (int i=0; i<this->colnames.size(); i++) {
-        bool uniqueCol = true;
-
-        for (int j=0; j<other.getColNames().size(); j++) {
-            //check if colnames match
-            if (this->colnames.at(i) == other.getColNames().at(j)) { 
-                uniqueCol = false;
-                thisColIndices.push_back(i);
-                otherColIndices.push_back(j);
-                break;
-            }
-        }
-        
-        if (uniqueCol) { uniqueCols.push_back(colnames.at(i)); }
-    }
-
-    
-    Relation joinedRelation(uniqueCols);
-
-    //loop over all pairs of rows, and if they match
-    //on the above columns, add to output
-
-    for (vector<string> thisRow : table) {
-        for (int row=0; row<other.numRows(); row++) {
-            //check if joinable
-            bool rowsJoinable = true;
-
-            //loop over common columns and check if data matches
-            for (int i=0; i<thisColIndices.size(); i++) {
-                if (thisRow.at(thisColIndices.at(i)) != 
-                        other.getRow(row).at(otherColIndices.at(i))) {
-                    rowsJoinable = false;
-                    break;
-                }
-            }
-
-            if (rowsJoinable) {
-                //join the rows and add to output
-                joinedRelation.addRow( 
-                    joinRows(thisRow, other.getRow(row), otherColIndices)
-                );
+    //loop over all pairs of columns
+    for (int thisIndex=0; thisIndex<this->colnames.size(); thisIndex++) {
+        for (int otherIndex=0; otherIndex<other.getColNames().size(); otherIndex++) {
+            //if matching, add to list of matches
+            if (this->colnames.at(thisIndex) == other.getColNames().at(otherIndex)) {
+                pair<int,int> match(thisIndex, otherIndex);
+                matches.push_back(match);
+                break; //no duplicate colnames, so only 1 match possible
             }
         }
     }
 
-    return joinedRelation;
+    return matches;
 }
 
 
 vector<string> Relation::joinRows(const vector<string>& row1, const vector<string>& row2, 
-                                  const vector<int>& matchesInRow2) const {
+                                  const vector<pair<int,int>>& matchingCols) const {
     //joins row1 and row2, skipping over the indices in 
     //row2 specified by matchesInRow2
     
@@ -204,10 +164,10 @@ vector<string> Relation::joinRows(const vector<string>& row1, const vector<strin
     //start with row1 and adds unique data from row2
     for (int col=0; col<row2.size(); col++) {
 
-        //if i is in the list of matches, skip it
+        //if col is in the list of matches for 'other', skip it
         bool keepData = true;
-        for (int index : matchesInRow2) {
-            if (col == index) { 
+        for (pair<int,int> matchingIndices : matchingCols) {
+            if (col == matchingIndices.second) {
                 keepData = false;
                 break;
             }
@@ -220,6 +180,137 @@ vector<string> Relation::joinRows(const vector<string>& row1, const vector<strin
     }
 
     return joinedRow;
+}
+
+
+vector<string> Relation::nullPad(const vector<string>& rowData, const vector<string>& rowColnames,
+                                 const vector<string>& allUniqueColnames) const {
+    vector<string> result;
+
+    for (int i=0; i<allUniqueColnames.size(); i++) {
+
+        //check if we have the data we need
+        bool foundData = false;
+        for (int dataCol=0; dataCol<rowColnames.size(); dataCol++) {
+
+            if (rowColnames.at(dataCol) == allUniqueColnames.at(i)) {
+                //we have it, add the data to result
+                result.push_back(rowData.at(dataCol));
+                foundData = true;
+                break;
+            }
+
+        }
+
+        //do null padding if neccecary
+        if (!foundData) { result.push_back(""); }
+    }
+
+    return result;
+}
+
+
+Relation Relation::join(const Relation& other, bool keepLhs, bool keepRhs) const {
+
+    vector<pair<int,int>> matchingCols = findMatchingCols(other);
+
+    vector<string> uniqueCols = this->colnames; //will add non-duplicate names from other
+
+    for (const string& otherColname : other.getColNames()) {
+        //check if dupe
+        bool duplicate = false;
+        for (pair<int,int> matchingIndices : matchingCols) {
+            if (otherColname == other.getColNames().at(matchingIndices.second)) {
+                //is duplicate
+                duplicate = true;
+                break;
+            }
+        }
+
+        if (!duplicate) { uniqueCols.push_back(otherColname); }
+    }
+    
+    Relation joinedRelation(uniqueCols);
+
+    //loop over all pairs of rows, and if they match
+    //on the above columns, add to output
+    
+    //keep track of which rows have been joined (use for outer joins)
+    vector<int> joinedRightRows;
+
+    for (int thisRow=0; thisRow<this->table.size(); thisRow++) {
+        //try find a matching row
+        bool foundJoinablePair = false;
+
+        for (int otherRow=0; otherRow<other.numRows(); otherRow++) {
+            //check if this specific pair is joinable
+            bool rowsJoinable = true;
+
+            //loop over common columns and check if data matches
+            for (int i=0; i<matchingCols.size(); i++) {
+                
+                if (this->table.at(thisRow).at(matchingCols.at(i).first) != 
+                        other.getRow(otherRow).at(matchingCols.at(i).second)) {
+                    rowsJoinable = false;
+                    break;
+                }
+            }
+
+            if (rowsJoinable) {
+                //join the rows and add to output
+                joinedRelation.addRow( 
+                    joinRows(this->table.at(thisRow), other.getRow(otherRow), matchingCols)
+                );
+                joinedRightRows.push_back(otherRow);
+                foundJoinablePair = true;
+            }
+            
+        }
+
+        //deal with outer joins if no match was found
+        if (!foundJoinablePair) { 
+            if (keepLhs) {
+                joinedRelation.addRow( nullPad(this->table.at(thisRow), this->colnames, uniqueCols) );
+            }
+        }
+    }
+
+    if (keepRhs) {
+        //add the unjoined rows from rhs
+        for (int row=0; row<other.numRows(); row++) {
+            
+            //check if its never been joined
+            bool neverJoined = true;
+            for (int checkRow : joinedRightRows) {
+                if (row == checkRow) {
+                    neverJoined = false;
+                    break;
+                }
+            }
+
+            if (neverJoined) {
+                joinedRelation.addRow( nullPad(other.getRow(row), other.getColNames(), uniqueCols) );
+            }
+        }
+    }
+
+    return joinedRelation;
+}
+
+Relation Relation::innerJoin(const Relation& other) const {
+    return this->join(other, false, false);
+}
+
+Relation Relation::leftOuterJoin(const Relation& other) const {
+    return this->join(other, true, false);
+}
+
+Relation Relation::rightOuterJoin(const Relation& other) const {
+    return this->join(other, false, true);
+}
+
+Relation Relation::fullOuterJoin(const Relation& other) const {
+    return this->join(other, true, true);
 }
 
 
