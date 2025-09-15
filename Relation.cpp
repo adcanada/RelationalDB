@@ -341,4 +341,6 @@ void Relation::print() const {
         }
         cout << endl;
     }
+
+    cout << endl;
 }

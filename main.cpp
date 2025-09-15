@@ -33,10 +33,19 @@ int main() {
             }
         }
 
+        cout << endl;
+
         //run command
         try {
-            Relation result = DB.execute(query);
-            result.print();
+            //split into commands separated by ';' and run them
+            size_t pos;
+            while ((pos = query.find(';')) != string::npos) {
+                string command = query.substr(0, pos+1);
+                query.erase(0, pos+1);
+
+                Relation result = DB.execute(command);
+                result.print();
+            }
         } catch (std::runtime_error *e) {
             cout << "\nException: " << e->what() << endl;
         }
