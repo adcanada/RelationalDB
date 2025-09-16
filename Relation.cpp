@@ -67,6 +67,21 @@ Relation Relation::project(vector<string>& columns) const {
 }
 
 
+Relation Relation::renameColumn(const string& oldcolname, const string& newcolname) {
+    //find old col
+    for (string& col : this->colnames) {
+        if (col == oldcolname) {
+            //rename it
+            col = newcolname;
+            return *this;
+        }
+    }
+
+    //unsuccessful, old colname not found
+    throw new std::runtime_error("Cannot rename column \""+oldcolname+"\", it does not exist");
+}
+
+
 Relation Relation::makeUnion(const Relation& other) const {
     //check same # cols
     if (this->colnames.size() != other.getColNames().size()) {

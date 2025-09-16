@@ -13,6 +13,7 @@ void invalidToken(const string&, const string&);
 const vector<string> keywords = { 
     "sigma", "select", 
     "pi", "project", 
+    "rho", "rename",
     "join", "loutjoin", "routjoin", "foutjoin",
     "union", 
     "intersect", 
@@ -84,6 +85,9 @@ Relation Database::executeTokens(vector<string>& tokens) {
     } else if (*tokenIter == "pi" || *tokenIter == "project") {
         return parsePi(remainingTokens);
 
+    } else if (*tokenIter == "rho" || *tokenIter == "rename") {
+        return parseRho(remainingTokens);
+
     } else { //relation name
         string name = *tokenIter;
 
@@ -93,6 +97,8 @@ Relation Database::executeTokens(vector<string>& tokens) {
         if (*tokenIter == "=") { //assigning to a relation
             Relation rval = executeTokens(remainingTokens);
             std::pair<string,Relation> newRelation(name, rval);
+
+            relations.erase(name);
             relations.insert(newRelation);
             return rval;
 
@@ -234,7 +240,7 @@ Relation Database::createRelation(vector<string>& tokens) {
 
 Relation Database::parseSigma(vector<string>& tokens) {
     //format:
-    //sigma { logic } { relation } ;
+    //sigma { logic } relation ;
     auto tokenIter = tokens.begin();
 
     //start with {
@@ -255,11 +261,6 @@ Relation Database::parseSigma(vector<string>& tokens) {
         invalidToken(*tokenIter, "}");
     }
 
-    //then {
-    if (*++tokenIter != "{") {
-        invalidToken(*tokenIter, "{");
-    }
-
     //now get the relation by name or brackets
     Relation rel;
     if (*++tokenIter == "(") {
@@ -272,11 +273,6 @@ Relation Database::parseSigma(vector<string>& tokens) {
             throw new std::runtime_error("Relation \""+*tokenIter+"\" not found");
         }
         rel = relations.at(*tokenIter);
-    }
-
-    //now the closing }
-    if (*++tokenIter != "}") {
-        invalidToken(*tokenIter, "}");
     }
 
     //and a ; at the end
@@ -377,7 +373,7 @@ LogicalExpression* Database::parseLogicalExpr(vector<string>::iterator& iter,
 
 Relation Database::parsePi(vector<string>& tokens) {
     //format:
-    //pi { colname , ... , colname } { relation } ;
+    //pi { colname , ... , colname } relation ;
     auto tokenIter = tokens.begin();
 
     if (*tokenIter != "{") {
@@ -401,9 +397,63 @@ Relation Database::parsePi(vector<string>& tokens) {
         invalidToken(*tokenIter, ",\" or \"}");
     }
 
-    //next should be { for the relation name
-    if (*++tokenIter != "{") {
+    //now get the relation by name or brackets
+    Relation rel;
+    if (*++tokenIter == "(") {
+        rel = executeParentheses(tokenIter, tokens.end());
+
+    } else if (isKeyword(*tokenIter)) {
+        invalidToken(*tokenIter, "relation name");
+    } else { //get relation by name
+        if (relations.find(*tokenIter) == relations.end()) { //check if relation exists
+            throw new std::runtime_error("Relation \""+*tokenIter+"\" not found");
+        }
+        rel = relations.at(*tokenIter);
+    }
+
+    //and a ; at the end
+    if (*++tokenIter != ";" && ++tokenIter == tokens.end()) {
+        invalidToken(*tokenIter, ";");
+    }
+
+    //now we have a list of columns and a relation
+    //so ask the relation to filter itself
+    return rel.project(selectedColumns);
+}
+
+
+Relation Database::parseRho(vector<string>& tokens) {
+    //format:
+    //rho { oldcolnames , newcolname } relation ;
+    auto tokenIter = tokens.begin();
+
+    if (*tokenIter != "{") {
         invalidToken(*tokenIter, "{");
+    }
+
+    string oldcolname;
+    if (isKeyword(*++tokenIter)) {
+        invalidToken(*tokenIter, "column name");
+    } else {
+        oldcolname = *tokenIter;
+    }
+
+    //comma separato
+    if (*++tokenIter != ",") {
+        invalidToken(*tokenIter, ",");
+    }
+
+    string newcolname;
+    if (isKeyword(*++tokenIter)) {
+        invalidToken(*tokenIter, "column name");
+    } else {
+        newcolname = *tokenIter;
+    }
+
+
+    //should have ended with }
+    if (*++tokenIter != "}") {
+        invalidToken(*tokenIter, ",\" or \"}");
     }
 
     //now get the relation by name or brackets
@@ -420,11 +470,6 @@ Relation Database::parsePi(vector<string>& tokens) {
         rel = relations.at(*tokenIter);
     }
 
-    //now the closing }
-    if (*++tokenIter != "}") {
-        invalidToken(*tokenIter, "}");
-    }
-
     //and a ; at the end
     if (*++tokenIter != ";" && ++tokenIter == tokens.end()) {
         invalidToken(*tokenIter, ";");
@@ -432,8 +477,8 @@ Relation Database::parsePi(vector<string>& tokens) {
 
     //now we have a list of columns and a relation
     //so ask the relation to filter itself
-    return rel.project(selectedColumns);
-}
+    return rel.renameColumn(oldcolname, newcolname);
+}   
 
 
 Relation Database::parseBinaryOperator(vector<string>& tokens) {

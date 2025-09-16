@@ -29,6 +29,7 @@ class Relation {
       //operators
       Relation select(const LogicalExpression&) const;
       Relation project(vector<string>&) const;
+      Relation renameColumn(const string&, const string&);
 
       Relation makeUnion(const Relation&) const;
       Relation makeIntersect(const Relation&) const;
