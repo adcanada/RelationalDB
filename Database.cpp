@@ -23,10 +23,6 @@ const vector<string> keywords = {
     "(", ")", ",", "\"", ";" 
 };
 
-const Relation& Database::getRelation(const string &name) const {
-    return this->relations.at(name);
-}
-
 Relation Database::execute(string& command) {
     vector<string> tokens = splitIntoTokens(command);
     return executeTokens(tokens);

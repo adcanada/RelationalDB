@@ -11,7 +11,6 @@ using std::vector;
 
 class Database {
   public:
-    const Relation& getRelation(const string&) const;
     Relation execute(string&);
 
   private:
