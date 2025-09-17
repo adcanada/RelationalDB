@@ -33,6 +33,7 @@ class Relation {
 
       Relation makeUnion(const Relation&) const;
       Relation makeIntersect(const Relation&) const;
+      Relation minusRelation(const Relation&) const; 
 
       Relation innerJoin(const Relation&) const;
       Relation leftOuterJoin(const Relation&) const;
@@ -49,6 +50,7 @@ class Relation {
 
     Relation join(const Relation&, bool, bool) const;
 
+    bool matchingColnames(const Relation& other) const;
     vector<string> nullPad(const vector<string>&, const vector<string>&, const vector<string>&) const;
     vector<pair<int,int>> findMatchingCols(const Relation&) const;
     vector<string> joinRows(const vector<string>&,

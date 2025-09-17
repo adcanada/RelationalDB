@@ -67,6 +67,7 @@ Relation Database::executeTokens(vector<string>& tokens) {
         if (*++tokenIter == ";") { return rel; }
         else if (*tokenIter == "union"     ||
                  *tokenIter == "intersect" ||
+                 *tokenIter == "minus"     ||
                  *tokenIter == "join"      ||
                  *tokenIter == "loutjoin"  ||
                  *tokenIter == "routjoin"  ||
@@ -110,6 +111,7 @@ Relation Database::executeTokens(vector<string>& tokens) {
 
         } else if (*tokenIter == "union"     ||
                    *tokenIter == "intersect" ||
+                   *tokenIter == "minus"     ||
                    *tokenIter == "join"      ||
                    *tokenIter == "loutjoin"  ||
                    *tokenIter == "routjoin"  ||
@@ -521,6 +523,8 @@ Relation Database::parseBinaryOperator(vector<string>& tokens) {
         newRel = lhs.makeUnion(rhs);
     } else if (operatorToken == "intersect") {
         newRel = lhs.makeIntersect(rhs);
+    } else if (operatorToken == "minus") {
+        newRel = lhs.minusRelation(rhs);
     } else if (operatorToken == "join") {
         newRel = lhs.innerJoin(rhs);
     } else if (operatorToken == "loutjoin") {
@@ -549,7 +553,7 @@ vector<string> splitIntoTokens(string& command) {
     while (token != ";") {
         //get next token and add if not just a space
         token = nextToken(command);
-        if (token == " ") { continue; }
+        if (token == " "  || token == "\t") { continue; }
         tokens.push_back(token);
     }
 
@@ -579,5 +583,5 @@ bool isKeyword(const string& str) {
 }
 
 void invalidToken(const string& token, const string& expected) {
-    throw new std::runtime_error("Invalid token \"" + token + "\", \"" + expected + "\" expected");
+    throw new std::runtime_error("Invalid token \"" + token + "\": \"" + expected + "\" expected");
 }

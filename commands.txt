@@ -1,0 +1,27 @@
+a = {EID, Name,  Age} {
+     E1,  John,  32,  
+     E2,  Alice, 28,  
+  	 E3,  Bob,   29
+};
+
+b = {EID,Dollars} {
+     E2, 40,
+     E3, 85,
+     E4, 99
+};
+
+sigma {Age<30} a;
+
+pi {Name,Age} a;
+
+a join b;
+a loutjoin b;
+a routjoin b;
+a foutjoin b;
+
+a;
+a = rho {EID,id}
+a;
+
+b = {id,Name,Age}{E2,Alice,28, E1,John,32};
+a minus b;

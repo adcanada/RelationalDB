@@ -82,17 +82,25 @@ Relation Relation::renameColumn(const string& oldcolname, const string& newcolna
 }
 
 
-Relation Relation::makeUnion(const Relation& other) const {
+bool Relation::matchingColnames(const Relation& other) const {
     //check same # cols
     if (this->colnames.size() != other.getColNames().size()) {
-        throw new std::runtime_error("Cannot union incompatible relations");
+        return false;
     }
 
     //check all col names match
     for (int i=0; i<colnames.size(); i++) {
         if (this->colnames.at(i) != other.getColNames().at(i)) {
-            throw new std::runtime_error("Cannot union incompatible relations");
+            return false;
         }
+    }
+    
+    return true;
+}
+
+Relation Relation::makeUnion(const Relation& other) const {
+    if (!matchingColnames(other)) {
+        throw new std::runtime_error("Cannot union incompatible relations");
     }
 
     Relation newRel(this->colnames);
@@ -111,16 +119,8 @@ Relation Relation::makeUnion(const Relation& other) const {
 }
 
 Relation Relation::makeIntersect(const Relation& other) const {
-    //check same # cols
-    if (this->colnames.size() != other.getColNames().size()) {
-        throw new std::runtime_error("Cannot union incompatible relations");
-    }
-
-    //check all col names match
-    for (int i=0; i<colnames.size(); i++) {
-        if (this->colnames.at(i) != other.getColNames().at(i)) {
-            throw new std::runtime_error("Cannot union incompatible relations");
-        }
+    if (!matchingColnames(other)) {
+        throw new std::runtime_error("Cannot intersect incompatible relations");
     }
     
     Relation newRel(this->colnames);
@@ -143,6 +143,46 @@ Relation Relation::makeIntersect(const Relation& other) const {
                 newRel.addRow(row);
                 break;
             }
+        }
+    }
+
+    return newRel;
+}
+
+
+Relation Relation::minusRelation(const Relation& other) const {
+    if (!matchingColnames(other)) {
+        throw new std::runtime_error("Cannot subtract incompatible relations");
+    }
+
+    Relation newRel(this->colnames);
+
+    for (int thisIndex=0; thisIndex<this->numRows(); thisIndex++) {
+
+        //check if row matches any rows in the other relation
+        //if not, then keep it since that's what subtraction is
+        bool keepRow = true;
+        for (int otherIndex=0; otherIndex<other.numRows(); otherIndex++) {
+            
+            //check if these two specific rows match
+            bool rowsFullyMatch = true;
+            for (int i=0; i<getColNames().size(); i++) {
+                if (this->table.at(thisIndex).at(i) !=
+                        other.getRow(otherIndex).at(i)) {
+                    //not matching data
+                    rowsFullyMatch = false;
+                    break;
+                }
+            }
+
+            if (rowsFullyMatch) {
+                keepRow = false;
+                break;
+            }
+        }
+
+        if (keepRow) {
+            newRel.addRow(this->table.at(thisIndex));
         }
     }
 
