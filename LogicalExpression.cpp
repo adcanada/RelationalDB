@@ -42,8 +42,14 @@ bool LogicalExpression::eval(const vector<string>& colnames, const vector<string
         case DataOperator::lessThan:
             return stoi(dataLhs) < stoi(compareValue);
             break;
+        case DataOperator::lessOrEqualTo:
+            return stoi(dataLhs) <= stoi(compareValue);
+            break;
         case DataOperator::greaterThan:
             return stoi(dataLhs) > stoi(compareValue);
+            break;
+        case DataOperator::greaterOrEqualTo:
+            return stoi(dataLhs) >= stoi(compareValue);
             break;
         case DataOperator::equalTo:
             return dataLhs == compareValue;

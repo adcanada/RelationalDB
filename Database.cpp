@@ -344,20 +344,28 @@ LogicalExpression* Database::parseLogicalExpr(vector<string>::iterator& iter,
         }
 
         DataOperator dataOp;
-        if (*++iter == "<")    { dataOp = DataOperator::lessThan; }
-        else if (*iter == ">") { dataOp = DataOperator::greaterThan; }
-        else if (*iter == "=") { dataOp = DataOperator::equalTo; }
-        else if (*iter == "!") {  
+        if (*++iter == "<")    { 
+            if (*++iter == "=") { dataOp = DataOperator::lessOrEqualTo; ++iter; }
+            else { dataOp = DataOperator::lessThan; }
+
+        } else if (*iter == ">") { 
+            if (*++iter == "=") { dataOp = DataOperator::greaterOrEqualTo; ++iter; }
+            else { dataOp = DataOperator::greaterThan; }
+
+        } else if (*iter == "=") { 
+            dataOp = DataOperator::equalTo; 
+
+        } else if (*iter == "!") {  
             // != is read as two tokens, if not connected then error
-            if (*++iter == "=") { dataOp = DataOperator::notEqualTo; }
+            if (*++iter == "=") { dataOp = DataOperator::notEqualTo; ++iter; }
             else { invalidToken(*iter, "="); }
         } else {
             //invalid operator
-            invalidToken(*iter, ">/</=/!=");
+            invalidToken(*iter, ">/>=/</<=/=/!=");
         }
 
         //get rhs
-        string rhs = *++iter;
+        string rhs = *iter;
         if (isKeyword(rhs)) {
             invalidToken(*iter, "a constant");
         }

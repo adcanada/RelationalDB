@@ -7,7 +7,8 @@
 using std::string;
 using std::vector;
 
-enum class DataOperator { lessThan, greaterThan, equalTo, notEqualTo };
+enum class DataOperator { lessThan, lessOrEqualTo, greaterThan, greaterOrEqualTo,
+                          equalTo, notEqualTo };
 enum class LogicalOperator { AND, OR };
 
 class LogicalExpression {
